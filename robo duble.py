@@ -101,7 +101,7 @@ class SeleniumScraper:
         quantia_input.send_keys(str(self.quantia))  # Certifique-se de converter para string antes de enviar o valor
 
     def main(self):
-        self.login_to_blaze("thiagotgrosa@yahoo.com", "258852@tG")
+        self.login_to_blaze("", "")
         self.goto_double_page()
         self.set_value_entry()
         self.make_bet()
