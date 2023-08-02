@@ -5,20 +5,34 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 import requests
 
+QUANTIA = "2"
+URL = "https://blaze.com/pt/games/double"
+
+# Resto do código permanece igual...
+
+
 class SeleniumScraper:
+
     def __init__(self, url, quantia):
         self.browser_lib = webdriver.Chrome()
         self.url = url
-        self.quantia = quantia
+        self.quantia_value = quantia
 
-    def set_value_entry(self):
-        value_field = WebDriverWait(self.browser_lib, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR,"input[type='number"))
-        )
-        value_field.clear()
-        value_field.send_keys(str(self.quantia))  # Certifique-se de converter para string antes de enviar o valor
+    def digitar_lentamente(self, elemento, texto, intervalo=0.2):
+        for letra in texto:
+            elemento.send_keys(letra)
+            time.sleep(intervalo)
+
+    def inserir_quantia(self):
+        time.sleep(10)
+        label_xpath = "/html[1]/body[1]/div[1]/main[1]/div[1]/div[4]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/div[1]/input[1]"
+        quantia_input = self.browser_lib.find_element(By.XPATH, label_xpath)
+        quantia_input.click()  # Clique no elemento para interagir com ele
+        quantia_input.clear()
+        self.digitar_lentamente(quantia_input, self.quantia_value)
 
     def login_to_blaze(self, login="", senha=""):
         isCaptcha = True
@@ -30,21 +44,29 @@ class SeleniumScraper:
             )
         )
         self.browser_lib.find_element(By.XPATH, "//div[@class='unauthed-buttons']//div[1]").click()
-        time.sleep(2)
+        time.sleep(1)
         login_box = self.browser_lib.find_element(By.XPATH, "//input[@name='username']")
-        login_box.send_keys(login)
+        self.digitar_lentamente(login_box, login)
         senha_box = self.browser_lib.find_element(By.XPATH, "(//input[@name='password'])[1]")
-        senha_box.send_keys(senha)
+        self.digitar_lentamente(senha_box, senha)
         time.sleep(1)
         self.browser_lib.find_element(By.XPATH, "(//button[normalize-space()='Entrar'])[1]").click()
         while isCaptcha:
             a = input("Resolva o captcha e digite 1 quando estiver pronto: ")
             if a == "1":
                 isCaptcha = False
-        time.sleep(3)
+            time.sleep(3)
+
+    def click_botao_comecar_jogo(self):
+        try:
+             botao_comecar_jogo = self.browser_lib.find_element(By.XPATH, "/html[1]/body[1]/div[1]/main[1]/div[1]/div[1]/div[1]")
+             botao_comecar_jogo.click()
+        except NoSuchElementException:
+             print("Botão 'Começar o jogo' não encontrado.")
+
 
     def goto_double_page(self):
-        self.browser_lib.get(self.url)  # Use a URL passada como argumento
+        self.browser_lib.get(self.url)
         time.sleep(2)
 
     @staticmethod
@@ -94,24 +116,35 @@ class SeleniumScraper:
             print(e)
 
     def make_bet(self):
-        quantia_input = WebDriverWait(self.browser_lib, 5).until(
+        quantia_input = WebDriverWait(self.browser_lib, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//input[@type='number']"))
         )
         quantia_input.clear()
-        quantia_input.send_keys(str(self.quantia))  # Certifique-se de converter para string antes de enviar o valor
+        quantia_input.send_keys(str(self.quantia_value))
 
     def main(self):
+        self.browser_lib.maximize_window()
         self.login_to_blaze("", "")
         self.goto_double_page()
-        self.set_value_entry()
+        self.inserir_quantia()
         self.make_bet()
+
+        # Aguardar alguns segundos antes de clicar em "Começar o jogo"
+        time.sleep(15)
+
+        # Clicar em "Começar o jogo"
+        self.click_botao_comecar_jogo()
+
+        # Aguardar alguns segundos antes de fechar o navegador
+        time.sleep(5 * 60)
 
         # Fechar o navegador
         self.browser_lib.quit()
 
 
 if __name__ == "__main__":
-    url = "https://blaze.com/pt/games/double"  # Insira a URL desejada
-    quantia = 10  # Insira o valor de quantia desejado
-    obj = SeleniumScraper(url, quantia=quantia)
+    obj = SeleniumScraper(
+        url=URL,
+        quantia=QUANTIA
+    )
     obj.main()
